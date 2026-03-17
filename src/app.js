@@ -7,7 +7,10 @@ const userModel = require("./model/user");
 const app = express();
 app.use(express.json());
 
+
+
 app.post("/signup", async (req, res) => {
+    // console.log("1. Signup route hit!");
   const user = new userModel(req.body);
 
   try {
@@ -75,20 +78,24 @@ app.patch("/update", async (req, res) => {
   const userId = req.body.userId;
   const data = req.body;
   try {
-    const user = await userModel.findByIdAndUpdate({ _id: userId }, data);
+    const user = await userModel.findByIdAndUpdate({ _id: userId }, data, {
+      returnDocument: "before",
+      runValidators: true,
+    });
     res.send("User updated successfully");
   } catch (e) {
-    res.status(401).send("something went wrong");
+    res.status(401).send("Update Failed: " + e.message);
   }
 });
 
 app.patch("/newUpdate", async (req, res) => {
-  const {email,age} = req.body;
-
-  
+  const { email, age } = req.body;
 
   try {
-    const user = await userModel.findOneAndUpdate({ email: email }, {age:age});
+    const user = await userModel.findOneAndUpdate(
+      { email: email },
+      { age: age },
+    );
     res.send("user updated successfully");
   } catch (e) {
     res.status(401).send("something went wrong");
