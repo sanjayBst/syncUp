@@ -7,10 +7,8 @@ const userModel = require("./model/user");
 const app = express();
 app.use(express.json());
 
-
-
 app.post("/signup", async (req, res) => {
-    // console.log("1. Signup route hit!");
+  // console.log("1. Signup route hit!");
   const user = new userModel(req.body);
 
   try {
@@ -74,10 +72,30 @@ app.delete("/delete", async (req, res) => {
   }
 });
 
-app.patch("/update", async (req, res) => {
-  const userId = req.body.userId;
+app.patch("/update/:userId", async (req, res) => {
+  const userId = req.params?.userId;
   const data = req.body;
   try {
+    const updates = [
+      "photoUrl",
+      "age",
+      "gender",
+      "password",
+      "firstName",
+      "about",
+      "skills",
+    ];
+
+    const isUpdateAllowed = Object.keys(data).every((k) => updates.includes(k));
+
+    if (!isUpdateAllowed) {
+      throw new Error("Update not allowed");
+    }
+
+    if (data?.skills.length > 10) {
+      throw new Error("10 skills are enough");
+    }
+
     const user = await userModel.findByIdAndUpdate({ _id: userId }, data, {
       returnDocument: "before",
       runValidators: true,

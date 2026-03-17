@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const validator = require("validator");
 
 const userSchema = new mongoose.Schema(
   {
@@ -35,12 +36,22 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      validate(value) {
+        if (!validator.isEmail(value)) {
+          throw new Error("Invalid Email Address " + value);
+        }
+      },
     },
     password: {
       type: String,
       required: true,
       minLength: 6,
       trim: true,
+      validate(value) {
+        if (!validator.isStrongPassword(value)) {
+          throw new Error("Password is too weak " + value);
+        }
+      },
     },
     about: {
       type: String,
@@ -56,10 +67,14 @@ const userSchema = new mongoose.Schema(
           return "https://shorturl.at/sCDVM";
         }
       },
+      validate(value) {
+        if (!validator.isURL(value)) {
+          throw new Error("Invalid URL " + value);
+        }
+      },
     },
     skills: {
       type: [String],
-      
     },
   },
   {
