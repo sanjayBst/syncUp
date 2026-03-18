@@ -1,24 +1,33 @@
-const authAdmin = (req, res, next) => {
-  const token = "xyz";
-  const isTokenValid = token === "xyz";
-  if (!isTokenValid) {
-    res.status(401).send("Unauhtorized");
-  } else {
-    console.log("Admin verified");
+const jwt = require("jsonwebtoken");
+const userModel = require("../model/user");
+
+const authUser = async (req, res, next) => {
+  try {
+    const cookies = req.cookies;
+
+    const { token } = cookies;
+
+    if (!token) {
+      throw new Error("Login Again !!");
+    }
+
+    const decoded = await jwt.verify(token, "syncUp@2806#");
+
+    const { _id } = decoded;
+
+    const user = await userModel.findById(_id);
+
+    if (!user) {
+      throw new Error("User not found ");
+    }
+    
+    req.user = user;
+    
 
     next();
+  } catch (e) {
+    res.send("Error: " + e.message);
   }
 };
 
-const authUser = (req, res, next) => {
-  const token = "zxc";
-  const isTokenValid = token === "zxc";
-  if (!isTokenValid) {
-    res.status(401).send("Unauthorized");
-  } else {
-    console.log("User verified");
-    next();
-  }
-};
-
-module.exports = { authAdmin, authUser };
+module.exports = { authUser };
