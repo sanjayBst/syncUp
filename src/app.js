@@ -1,21 +1,56 @@
 const express = require("express");
 const connectDB = require("./config/database");
 const userModel = require("./model/user");
-
-// const { authAdmin, authUser } = require("./middlewares/auth");
+const { validateSignUpData } = require("./utils/validation");
+const bcrypt = require("bcrypt");
 
 const app = express();
 app.use(express.json());
 
 app.post("/signup", async (req, res) => {
   // console.log("1. Signup route hit!");
-  const user = new userModel(req.body);
 
   try {
+    validateSignUpData(req);
+
+    const { firstName, lastName, email, password } = req.body;
+
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    const user = new userModel({
+      firstName,
+      lastName,
+      email,
+      password: hashPassword,
+    });
+
     await user.save();
     res.send("User sign up successfully");
   } catch (e) {
     res.send("Error occured: " + e.message);
+  }
+});
+
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await userModel.findOne({ email: email });
+    console.log(user);
+
+    if (!user) {
+      throw new Error("Invalid credentials");
+    }
+
+    const isPassValid = await bcrypt.compare(password, user.password);
+
+    if (isPassValid) {
+      res.send("Login Success");
+    } else {
+      throw new Error("Invalid credentials");
+    }
+  } catch (e) {
+    res.status(401).send("Something went wrong");
   }
 });
 
