@@ -4,20 +4,19 @@ const connectionRequestModel = require("../model/connectionRequest");
 
 const userRouter = express.Router();
 
+const populateData = "firstName lastName age photoUrl gender about skills";
+
 userRouter.get("/user/request/pending", authUser, async (req, res) => {
   try {
-      console.log("hit");
+    console.log("hit");
     const loggedInUser = req.user;
 
     const connectionRequests = await connectionRequestModel
       .find({
         toUserId: loggedInUser._id,
-        // status: "interested",
+        status: "interested",
       })
-      .populate(
-        "fromUserId",
-        "firstName lastName age photoUrl gender about skills",
-      );
+      .populate("fromUserId", populateData);
 
     if (connectionRequests.length === 0) {
       return res.status(200).json({
@@ -35,4 +34,34 @@ userRouter.get("/user/request/pending", authUser, async (req, res) => {
   }
 });
 
-module.exports = userRouter
+userRouter.get("/user/connections", authUser, async (req, res) => {
+  try {
+    const loggedInUser = req.user;
+
+    const connectionRequests = await connectionRequestModel
+      .find({
+        $or: [
+          { toUserId: loggedInUser._id, status: "accepted" },
+          { fromUserId: loggedInUser._id, status: "accepted" },
+        ],
+      })
+      .populate("fromUserId", populateData)
+      .populate("toUserId", populateData);
+
+    const data = connectionRequests.map((row) => {
+      if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
+        return row.toUserId;
+      }
+      return row.fromUserId;
+    });
+
+    res.json({
+      message: "Connection Loaded",
+      data,
+    });
+  } catch (e) {
+    res.status(400).send("Error: " + e.message);
+  }
+});
+
+module.exports = userRouter;
