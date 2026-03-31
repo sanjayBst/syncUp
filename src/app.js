@@ -6,6 +6,7 @@ const  authRouter  = require("./routes/auth");
 const  profileRouter  = require("./routes/profile");
 // console.log('working');
 const  connectionRouter  = require("./routes/connection");
+const userRouter = require("./routes/user");
 
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(cookieParser());
 
 app.use("/", authRouter);
 app.use("/", profileRouter);
+app.use("/",userRouter)
 app.use("/", connectionRouter);
 
 connectDB()
