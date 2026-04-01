@@ -1,14 +1,15 @@
 const express = require("express");
 const { authUser } = require("../middlewares/auth");
 const connectionRequestModel = require("../model/connectionRequest");
+const userModel = require("../model/user");
 
 const userRouter = express.Router();
 
-const populateData = "firstName lastName age photoUrl gender about skills";
+const userData = "firstName lastName age photoUrl gender about skills";
 
 userRouter.get("/user/request/pending", authUser, async (req, res) => {
   try {
-    console.log("hit");
+    // console.log("hit");
     const loggedInUser = req.user;
 
     const connectionRequests = await connectionRequestModel
@@ -16,7 +17,7 @@ userRouter.get("/user/request/pending", authUser, async (req, res) => {
         toUserId: loggedInUser._id,
         status: "interested",
       })
-      .populate("fromUserId", populateData);
+      .populate("fromUserId", userData);
 
     if (connectionRequests.length === 0) {
       return res.status(200).json({
@@ -45,8 +46,8 @@ userRouter.get("/user/connections", authUser, async (req, res) => {
           { fromUserId: loggedInUser._id, status: "accepted" },
         ],
       })
-      .populate("fromUserId", populateData)
-      .populate("toUserId", populateData);
+      .populate("fromUserId", userData)
+      .populate("toUserId", userData);
 
     const data = connectionRequests.map((row) => {
       if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
@@ -61,6 +62,46 @@ userRouter.get("/user/connections", authUser, async (req, res) => {
     });
   } catch (e) {
     res.status(400).send("Error: " + e.message);
+  }
+});
+
+userRouter.get("/feed", authUser, async (req, res) => {
+  try {
+    // console.log("Hitt");
+
+    const loggedInUser = req.user;
+
+    const page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    limit = limit > 20 ? 20 : limit;
+    const skip = (page - 1) * limit;
+
+    const connectionRequests = await connectionRequestModel
+      .find({
+        $or: [{ fromUserId: loggedInUser._id }, { toUserId: loggedInUser._id }],
+      })
+      .select("fromUserId toUserId");
+
+    const hideUserFromFeed = new Set();
+    connectionRequests.forEach((req) => {
+      hideUserFromFeed.add(req.fromUserId.toString());
+      hideUserFromFeed.add(req.toUserId.toString());
+    });
+
+    const users = await userModel
+      .find({
+        $and: [
+          { _id: { $nin: Array.from(hideUserFromFeed) } },
+          { _id: { $ne: loggedInUser._id } },
+        ],
+      })
+      .select(userData)
+      .skip(skip)
+      .limit(limit);
+
+    res.send(users);
+  } catch (e) {
+    res.send("Error: " + e.message);
   }
 });
 
